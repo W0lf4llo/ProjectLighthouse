@@ -10,6 +10,7 @@ public static class CategoryHelper
 
     static CategoryHelper()
     {
+        Categories.Add(new RecommendedCategory());
         Categories.Add(new TeamPicksCategory());
         Categories.Add(new MostHeartedCategory());
         Categories.Add(new NewestLevelsCategory());
