@@ -20,6 +20,7 @@ public static class CategoryHelper
         Categories.Add(new QueueCategory());
         Categories.Add(new HeartedCategory());
         Categories.Add(new LuckyDipCategory());
+        Categories.Add(new RecentlyPlayedCategory());
         Categories.Add(new TextSearchCategory());
 
         using DatabaseContext database = DatabaseContext.CreateNewInstance();

@@ -1,4 +1,7 @@
 ﻿#nullable enable
+using System;
+using System.Collections.Generic; 
+using System.Linq;
 using System.Threading.Tasks;
 using LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
 using LBPUnion.ProjectLighthouse.Types.Entities.Level;
@@ -87,4 +90,65 @@ public partial class DatabaseContext
         await this.SaveChangesAsync();
     }
 
+    public async Task RecordRecentlyPlayedLevel(int userId, int slotId)
+    {
+        RecentlyPlayedEntity? recentlyPlayed =
+            await this.RecentlyPlayed.FirstOrDefaultAsync(r =>
+                r.UserId == userId);
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        //Top recently played level for the user.
+        if (recentlyPlayed == null)
+        {
+            this.RecentlyPlayed.Add(new RecentlyPlayedEntity
+            {
+                UserId = userId,
+                SlotIds = new List<int> { slotId },
+                LastPlayedAt = new List<long> { now },
+            });
+
+            await this.SaveChangesAsync();
+            return;
+        }
+
+        //LBP3 can send multiple gameState packets for one level, and if the player is already connected, it doesnt reqrite the entry with this
+        if (recentlyPlayed.SlotIds.Count > 0 &&
+            recentlyPlayed.SlotIds[0] == slotId)
+        {
+            return;
+        }
+
+        //If the level already exists in the history it removes the slot id and the timestamp
+        int existingIndex = recentlyPlayed.SlotIds.IndexOf(slotId);
+
+        if (existingIndex >= 0)
+        {
+            recentlyPlayed.SlotIds.RemoveAt(existingIndex);
+
+            if (existingIndex < recentlyPlayed.LastPlayedAt.Count)
+                recentlyPlayed.LastPlayedAt.RemoveAt(existingIndex);
+        }
+
+        //The newest added levels go to the start of the list
+        recentlyPlayed.SlotIds.Insert(0, slotId);
+        recentlyPlayed.LastPlayedAt.Insert(0, now);
+
+        //Keeps a max of 20 levels
+        if (recentlyPlayed.SlotIds.Count > 20)
+        {
+            recentlyPlayed.SlotIds.RemoveRange(
+                20,
+                recentlyPlayed.SlotIds.Count - 20);
+        }
+
+        if (recentlyPlayed.LastPlayedAt.Count > 20)
+        {
+            recentlyPlayed.LastPlayedAt.RemoveRange(
+                20,
+                recentlyPlayed.LastPlayedAt.Count - 20);
+        }
+
+        await this.SaveChangesAsync();
+    }
 }
