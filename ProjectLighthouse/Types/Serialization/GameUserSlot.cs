@@ -41,6 +41,15 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
 
     [XmlElement("npHandle")]
     public NpHandle AuthorHandle { get; set; } = new();
+    [XmlElement("searchScore")]
+    public double? SearchScore { get; set; }
+    public bool ShouldSerializeSearchScore() =>
+        this.SearchScore.HasValue;
+
+    [XmlElement("prevSearchScore")]
+    public double? PrevSearchScore { get; set; }
+    public bool ShouldSerializePrevSearchScore() =>
+        this.PrevSearchScore.HasValue;
 
     [XmlElement("location")]
     public Location Location { get; set; } = new();

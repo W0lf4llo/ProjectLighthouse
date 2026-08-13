@@ -86,6 +86,7 @@ public class CategoryController : ControllerBase
 
         GenericSerializableList returnList = category switch
         {
+            RecommendedCategory rc => await this.GetRecommendedCategory(rc, token, queryBuilder, pageData),
             SlotCategory gc => await this.GetSlotCategory(gc, token, queryBuilder, pageData),
             PlaylistCategory pc => await this.GetPlaylistCategory(pc, token, pageData),
             UserCategory uc => await this.GetUserCategory(uc, token, pageData),
@@ -93,6 +94,24 @@ public class CategoryController : ControllerBase
         };
 
         return this.Ok(returnList);
+    }
+
+    private async Task<GenericSerializableList> GetRecommendedCategory(RecommendedCategory recommendedCategory, GameTokenEntity token, SlotQueryBuilder queryBuilder, PaginationData pageData)
+    {
+        List<RecommendedCategory.ScoredSlot> recommendations = await recommendedCategory.GetScoredItems(this.database, token, queryBuilder);
+
+        pageData.TotalElements = recommendations.Count;
+
+        List<RecommendedCategory.ScoredSlot> page = recommendations
+            .AsQueryable()
+            .ApplyPagination(pageData)
+            .ToList();
+
+        List<ILbpSerializable> slots = page
+            .Select(recommendation => RecommendedCategory.CreateSerializableSlot(recommendation, token))
+            .ToList();
+
+        return new GenericSerializableList(slots, pageData);
     }
 
     private async Task<GenericSerializableList> GetUserCategory(UserCategory userCategory, GameTokenEntity token, PaginationData pageData)
