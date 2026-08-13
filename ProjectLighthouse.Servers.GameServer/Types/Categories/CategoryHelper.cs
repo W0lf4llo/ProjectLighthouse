@@ -10,18 +10,18 @@ public static class CategoryHelper
 
     static CategoryHelper()
     {
+        Categories.Add(new RecentlyPlayedCategory());
         Categories.Add(new RecommendedCategory());
         Categories.Add(new TeamPicksCategory());
         Categories.Add(new MostHeartedCategory());
         Categories.Add(new NewestLevelsCategory());
+        Categories.Add(new BusiestCategory());
         Categories.Add(new MostPlayedCategory());
-        Categories.Add(new HighestRatedCategory());
-        Categories.Add(new MyHeartedCreatorsCategory());
         Categories.Add(new MyPlaylistsCategory());
         Categories.Add(new QueueCategory());
         Categories.Add(new HeartedCategory());
+        Categories.Add(new HighestRatedCategory());
         Categories.Add(new LuckyDipCategory());
-        Categories.Add(new RecentlyPlayedCategory());
         Categories.Add(new TextSearchCategory());
 
         using DatabaseContext database = DatabaseContext.CreateNewInstance();

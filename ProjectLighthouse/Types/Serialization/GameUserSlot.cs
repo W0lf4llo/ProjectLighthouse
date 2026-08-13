@@ -303,7 +303,11 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
         }
         #nullable disable
 
-        this.PlayerCount = RoomHelper.Rooms.Count(r => r.Slot.SlotType == SlotType.User && r.Slot.SlotId == this.SlotId);
+        Dictionary<int, int> playerCounts = RoomHelper.GetUserLevelPlayerCounts();
+
+        this.PlayerCount = playerCounts.TryGetValue(this.SlotId, out int playerCount)
+            ? playerCount
+            : 0;
     }
 
 }
