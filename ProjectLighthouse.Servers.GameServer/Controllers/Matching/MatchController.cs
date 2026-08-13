@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Text.Json;
 using LBPUnion.ProjectLighthouse.Configuration;
 using LBPUnion.ProjectLighthouse.Database;
@@ -34,94 +33,10 @@ public class MatchController : ControllerBase
 
     [HttpPost("gameState")]
     [Produces("text/plain")]
-    public async Task<IActionResult> GameState()
+    public IActionResult GameState()
     {
-        GameTokenEntity token = this.GetToken();
-        string bodyString = await this.ReadBodyAsync();
-
-        Logger.Info(
-            $"Server has received gameState, GameVersion={token.GameVersion}, Platform={token.Platform}, Body={bodyString}",
-            LogArea.Match);
-
-        if (string.IsNullOrWhiteSpace(bodyString))
-            return this.Ok("VALID");
-
-        try
-        {
-            int jsonStart = bodyString.IndexOf('{');
-            int jsonEnd = bodyString.LastIndexOf('}');
-
-            if (jsonStart < 0 || jsonEnd < jsonStart)
-                return this.Ok("VALID");
-
-            string json = bodyString[jsonStart..(jsonEnd + 1)];
-
-            using JsonDocument document = JsonDocument.Parse(json);
-            JsonElement root = document.RootElement;
-
-            if (!root.TryGetProperty("currentLevel", out JsonElement currentLevel))
-                return this.Ok("VALID");
-
-            if (currentLevel.ValueKind != JsonValueKind.Array ||
-                currentLevel.GetArrayLength() < 2)
-                return this.Ok("VALID");
-
-            string? levelType = currentLevel[0].GetString();
-
-            if (!currentLevel[1].TryGetInt32(out int slotId))
-                return this.Ok("VALID");
-
-            Logger.Info(
-                $"Parsed gameState: GameVersion={token.GameVersion}, LevelType={levelType}, SlotId={slotId}",
-                LogArea.Match);
-
-            //Makes it so that this is a LBP3 only feature
-            if (token.GameVersion != GameVersion.LittleBigPlanet3)
-                return this.Ok("VALID");
-
-            //Makes it so that only community/user levels belong in Recently Played.
-            if (!string.Equals(levelType, "user", StringComparison.OrdinalIgnoreCase))
-                return this.Ok("VALID");
-
-            if (slotId <= 0)
-                return this.Ok("VALID");
-
-            //This checks the supplied slotId to see if its valid.
-            bool slotExists = await this.database.Slots
-                .AnyAsync(s => s.SlotId == slotId);
-
-            if (!slotExists)
-            {
-                Logger.Info(
-                    $"Ignoring recently played SlotId={slotId} since it doesn't exist.",
-                    LogArea.Match);
-
-                return this.Ok("VALID");
-            }
-
-            await this.database.RecordRecentlyPlayedLevel(
-                token.UserId,
-                slotId);
-
-            Logger.Info(
-                $"Successfully updated Recently Played for UserId={token.UserId}, SlotId={slotId}",
-                LogArea.Match);
-        }
-        catch (JsonException e)
-        {
-            Logger.Error(
-                $"Failed to parse the gameState JSON: {e.Message}",
-                LogArea.Match);
-        }
-        catch (Exception e)
-        {
-            //Makes it so that this recently played implementation doesnt cause /gameState to cry and break.
-            Logger.Error(
-                $"Failed to update Recently Played: {e.Message}",
-                LogArea.Match);
-        }
         return this.Ok("VALID");
-}
+    }
 
     [HttpPost("match")]
     [Produces("text/plain")]

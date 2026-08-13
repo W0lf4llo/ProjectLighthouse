@@ -90,15 +90,13 @@ public partial class DatabaseContext
         await this.SaveChangesAsync();
     }
 
-    public async Task RecordRecentlyPlayedLevel(int userId, int slotId)
+    public async Task RecordRecentlyPlayedLevel(int userId, int slotId, bool saveChanges = true)
     {
-        RecentlyPlayedEntity? recentlyPlayed =
-            await this.RecentlyPlayed.FirstOrDefaultAsync(r =>
-                r.UserId == userId);
+        RecentlyPlayedEntity? recentlyPlayed = await this.RecentlyPlayed.FirstOrDefaultAsync(r => r.UserId == userId);
 
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        //Top recently played level for the user.
+        //Level at the top of the recently played category for the user
         if (recentlyPlayed == null)
         {
             this.RecentlyPlayed.Add(new RecentlyPlayedEntity
@@ -108,18 +106,18 @@ public partial class DatabaseContext
                 LastPlayedAt = new List<long> { now },
             });
 
-            await this.SaveChangesAsync();
+            if (saveChanges)await this.SaveChangesAsync();
+
             return;
         }
 
-        //LBP3 can send multiple gameState packets for one level, and if the player is already connected, it doesnt reqrite the entry with this
-        if (recentlyPlayed.SlotIds.Count > 0 &&
-            recentlyPlayed.SlotIds[0] == slotId)
+        //This makes it so the users most recently played level isnt rewritten if it they're in said level
+        if (recentlyPlayed.SlotIds.Count > 0 && recentlyPlayed.SlotIds[0] == slotId)
         {
             return;
         }
 
-        //If the level already exists in the history it removes the slot id and the timestamp
+        //If the level already existed in the users history, it removes its old timestamp and position, then moves it to the top of the list.
         int existingIndex = recentlyPlayed.SlotIds.IndexOf(slotId);
 
         if (existingIndex >= 0)
@@ -130,25 +128,21 @@ public partial class DatabaseContext
                 recentlyPlayed.LastPlayedAt.RemoveAt(existingIndex);
         }
 
-        //The newest added levels go to the start of the list
+        //The most recently played level is at the top
         recentlyPlayed.SlotIds.Insert(0, slotId);
         recentlyPlayed.LastPlayedAt.Insert(0, now);
 
-        //Keeps a max of 20 levels
+        //Max of 20 levels
         if (recentlyPlayed.SlotIds.Count > 20)
         {
-            recentlyPlayed.SlotIds.RemoveRange(
-                20,
-                recentlyPlayed.SlotIds.Count - 20);
+            recentlyPlayed.SlotIds.RemoveRange(20, recentlyPlayed.SlotIds.Count - 20);
         }
 
         if (recentlyPlayed.LastPlayedAt.Count > 20)
         {
-            recentlyPlayed.LastPlayedAt.RemoveRange(
-                20,
-                recentlyPlayed.LastPlayedAt.Count - 20);
+            recentlyPlayed.LastPlayedAt.RemoveRange(20, recentlyPlayed.LastPlayedAt.Count - 20);
         }
 
-        await this.SaveChangesAsync();
+        if (saveChanges)await this.SaveChangesAsync();
     }
 }
