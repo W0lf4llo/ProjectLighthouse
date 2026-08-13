@@ -23,19 +23,10 @@ public class RecommendedCategory : Category
     private const int MinimumNeighborOverlap = 2;
     //This is the maximum number of levels that can be reviewed during a single recommendation request.
     private const int MaxCandidatePool = 1000;
-
-    public override string Name { get; set; } =
-        "Recommended For You";
-
-    public override string Description { get; set; } =
-        "Stuff we think you'll like";
-
-    public override string IconHash { get; set; } =
-        "g820625";
-
-    public override string Endpoint { get; set; } =
-        "recommended";
-
+    public override string Name { get; set; } = "Recommended For You";
+    public override string Description { get; set; } = "Stuff we think you'll like";
+    public override string IconHash { get; set; } = "g820625";
+    public override string Endpoint { get; set; } = "recommended";
     public override string Tag => "recommended";
 
     public override string[] Types { get; } =
@@ -49,22 +40,14 @@ public class RecommendedCategory : Category
     //It goes up when a hearted user hearts a level
     //The SearchScore is the final score after the recommendation algorithm,
     //Mostly from users with a similar taste.
-    public sealed record ScoredSlot(
-        SlotEntity Slot,
-        double SearchScore,
-        double PrevSearchScore,
-        int Hearts,
-        int Likes);
+    public sealed record ScoredSlot(SlotEntity Slot, double SearchScore, double PrevSearchScore, int Hearts, int Likes);
 
     //This will generate a more personalized recommendation tab based on the user..
     //It'll firstly look at the levels hearted by players that you currently heart..
     //This will become the PrevSearchScore.
     //
     //Then it finds users with a similar taste, look at levels they heartedm and it'll contribute to the SearchScore.
-    public async Task<List<ScoredSlot>> GetScoredItems(
-        DatabaseContext database,
-        GameTokenEntity token,
-        SlotQueryBuilder queryBuilder)
+    public async Task<List<ScoredSlot>> GetScoredItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder)
     {
         //Gets the players that the user currently has hearted, this is REQUIRED if the tag 'recommended' is used.
         List<int> seedUserIds = await database.HeartedProfiles
@@ -81,27 +64,28 @@ if (seedUserIds.Count == 0)
 
         //Finds levels hearted by the players you hearted
         //Each hearted player will act as a recommendation source for you.
-        var seedHearts = await database.HeartedLevels
+        //OPTIMIZATION - I made it so that the grouping is done via the database and not within Lighthouse
+        //It loads every heart into memory on the servers with a lot of data
+        var directScoreRows = await database.HeartedLevels
             .AsNoTracking()
             .Where(h => seedUserIds.Contains(h.UserId))
-            .Select(h => new
-            {
-                h.UserId,
-                h.SlotId,
-            })
-            .ToListAsync();
-
-        Dictionary<int, int> directScores = seedHearts
             .GroupBy(h => h.SlotId)
-            .ToDictionary(
-                group => group.Key,
-                group => group
+            .Select(group => new
+            {
+                SlotId = group.Key,
+                Score = group
                     .Select(h => h.UserId)
                     .Distinct()
-                    .Count());
+                    .Count(),
+            })
+            .OrderByDescending(result => result.Score)
+            .ThenBy(result => result.SlotId)
+            .Take(MaxCandidatePool)
+            .ToListAsync();
 
-        List<int> seedTasteSlotIds =
-            directScores.Keys.ToList();
+        Dictionary<int, int> directScores = directScoreRows.ToDictionary(result => result.SlotId, result => result.Score);
+
+        List<int> seedTasteSlotIds = directScores.Keys.ToList();
 
         //This will find users who seem to have a similar taste to you, it'll look for several hearts of the same levels
         Dictionary<int, int> neighborScores = new();
@@ -125,8 +109,7 @@ if (seedUserIds.Count == 0)
                         .Distinct()
                         .Count(),
                 })
-                .Where(user =>
-                    user.Overlap >= MinimumNeighborOverlap)
+                .Where(user => user.Overlap >= MinimumNeighborOverlap)
                 .OrderByDescending(user => user.Overlap)
                 .ThenBy(user => user.UserId)
                 .Take(MaxNeighbors)
@@ -155,7 +138,6 @@ if (seedUserIds.Count == 0)
                     .OrderByDescending(result => result.Score)
                     .Take(MaxCandidatePool)
                     .ToListAsync();
-
                 neighborScores = neighborScoreRows
                     .ToDictionary(
                         result => result.SlotId,
@@ -174,8 +156,7 @@ if (seedUserIds.Count == 0)
             .Take(MaxCandidatePool)
             .ToListAsync();
 
-        HashSet<int> heartedCreatorSlotSet =
-            heartedCreatorSlotIds.ToHashSet();
+        HashSet<int> heartedCreatorSlotSet = heartedCreatorSlotIds.ToHashSet();
 
         //Combines 3 sources for recommendation candidates..
         //Sources are levels hearted by players that the user hearts
@@ -196,16 +177,13 @@ if (seedUserIds.Count == 0)
         List<int> candidateIds = allCandidateIds
             .Select(slotId =>
             {
-                int prevSearchScore =
-                    directScores.GetValueOrDefault(slotId);
+                int prevSearchScore = directScores.GetValueOrDefault(slotId);
 
-                int neighborScore =
-                    neighborScores.GetValueOrDefault(slotId);
+                int neighborScore = neighborScores.GetValueOrDefault(slotId);
 
-                int creatorBonus =
-                    heartedCreatorSlotSet.Contains(slotId)
-                        ? 1
-                        : 0;
+                int creatorBonus = heartedCreatorSlotSet.Contains(slotId)
+                    ? 1
+                    : 0;
 
                 int searchScore =
                     prevSearchScore +
@@ -269,14 +247,11 @@ if (seedUserIds.Count == 0)
         List<ScoredSlot> recommendations = slots
             .Select(slot =>
             {
-                int prevSearchScore =
-                    directScores.GetValueOrDefault(slot.SlotId);
+                int prevSearchScore = directScores.GetValueOrDefault(slot.SlotId);
 
-                int neighborScore =
-                    neighborScores.GetValueOrDefault(slot.SlotId);
+                int neighborScore = neighborScores.GetValueOrDefault(slot.SlotId);
 
-                int creatorBonus =
-                    seedUserIds.Contains(slot.CreatorId)
+                int creatorBonus = seedUserIds.Contains(slot.CreatorId)
                         ? 1
                         : 0;
 
@@ -285,12 +260,7 @@ if (seedUserIds.Count == 0)
                     neighborScore +
                     creatorBonus;
 
-                return new ScoredSlot(
-                    slot,
-                    searchScore,
-                    prevSearchScore,
-                    heartCounts.GetValueOrDefault(slot.SlotId),
-                    likeCounts.GetValueOrDefault(slot.SlotId));
+                return new ScoredSlot(slot, searchScore, prevSearchScore, heartCounts.GetValueOrDefault(slot.SlotId), likeCounts.GetValueOrDefault(slot.SlotId));
             })
             .Where(result => result.SearchScore > 0)
             .OrderByDescending(result => result.SearchScore)
@@ -310,30 +280,19 @@ if (seedUserIds.Count == 0)
 
     if (serialized is GameUserSlot userSlot)
     {
-        userSlot.SearchScore =
-            recommendation.SearchScore;
+        userSlot.SearchScore = recommendation.SearchScore;
 
-        userSlot.PrevSearchScore =
-            recommendation.PrevSearchScore;
+        userSlot.PrevSearchScore = recommendation.PrevSearchScore;
     }
 
     return serialized;
 }
 
-    public override async Task<GameCategory> Serialize(
-        DatabaseContext database,
-        GameTokenEntity token,
-        SlotQueryBuilder queryBuilder,
-        int numResults = 1)
+    public override async Task<GameCategory> Serialize(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder, int numResults = 1)
     {
-        List<ScoredSlot> recommendations =
-            await this.GetScoredItems(
-                database,
-                token,
-                queryBuilder);
+        List<ScoredSlot> recommendations = await this.GetScoredItems(database, token, queryBuilder);
 
-        List<ILbpSerializable> serializedSlots =
-            recommendations
+        List<ILbpSerializable> serializedSlots = recommendations
                 .Take(numResults)
                 .Select(recommendation =>
                     CreateSerializableSlot(
@@ -341,11 +300,6 @@ if (seedUserIds.Count == 0)
                         token))
                 .ToList();
 
-        return GameCategory.CreateFromEntity(
-            this,
-            new GenericSerializableList(
-                serializedSlots,
-                recommendations.Count,
-                numResults + 1));
+        return GameCategory.CreateFromEntity(this, new GenericSerializableList(serializedSlots, recommendations.Count, numResults + 1));
     }
 }
