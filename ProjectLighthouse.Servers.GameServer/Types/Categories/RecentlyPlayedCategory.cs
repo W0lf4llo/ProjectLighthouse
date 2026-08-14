@@ -21,6 +21,10 @@ public class RecentlyPlayedCategory : SlotCategory
     public override string IconHash { get; set; } = "g820616";
     public override string Endpoint { get; set; } = "recently_played";
     public override string Tag => "my_recently_played";
+    public override string[] Sorts { get; } =
+    {
+      "relevance",
+    };
 
     public override IQueryable<SlotEntity> GetItems(
         DatabaseContext database,

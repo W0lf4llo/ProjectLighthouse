@@ -10,13 +10,17 @@ namespace LBPUnion.ProjectLighthouse.Servers.GameServer.Types.Categories;
 
 public class NewestLevelsCategory : SlotCategory
 {
-    public override string Name { get; set; } = "Newest Levels";
-    public override string Description { get; set; } = "The most recently published content";
-    public override string IconHash { get; set; } = "g820623";
-    public override string Endpoint { get; set; } = "newest";
-    public override string Tag => "newest";
+  public override string Name { get; set; } = "Newest Levels";
+  public override string Description { get; set; } = "The most recently published content";
+  public override string IconHash { get; set; } = "g820623";
+  public override string Endpoint { get; set; } = "newest";
+  public override string Tag => "newest";
+  public override string[] Sorts { get; } =
+  {
+      "date"
+    };
 
-    public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder) =>
-        database.Slots.Where(queryBuilder.Build())
-            .ApplyOrdering(new SlotSortBuilder<SlotEntity>().AddSort(new FirstUploadedSort()));
+  public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder) =>
+      database.Slots.Where(queryBuilder.Build())
+          .ApplyOrdering(new SlotSortBuilder<SlotEntity>().AddSort(new FirstUploadedSort()));
 }

@@ -15,6 +15,10 @@ public class BusiestCategory : SlotCategory
     public override string IconHash { get; set; } = "g820602";
     public override string Endpoint { get; set; } = "busiest";
     public override string Tag => "busiest";
+    public override string[] Sorts { get; } =
+    {
+      "relevance",
+    };
 
     public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder)
     {
