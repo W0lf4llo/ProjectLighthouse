@@ -132,15 +132,15 @@ public partial class DatabaseContext
         recentlyPlayed.SlotIds.Insert(0, slotId);
         recentlyPlayed.LastPlayedAt.Insert(0, now);
 
-        //Max of 20 levels
-        if (recentlyPlayed.SlotIds.Count > 20)
+        //Max of 30 levels
+        if (recentlyPlayed.SlotIds.Count > 30)
         {
-            recentlyPlayed.SlotIds.RemoveRange(20, recentlyPlayed.SlotIds.Count - 20);
+            recentlyPlayed.SlotIds.RemoveRange(30, recentlyPlayed.SlotIds.Count - 30);
         }
 
-        if (recentlyPlayed.LastPlayedAt.Count > 20)
+        if (recentlyPlayed.LastPlayedAt.Count > 30)
         {
-            recentlyPlayed.LastPlayedAt.RemoveRange(20, recentlyPlayed.LastPlayedAt.Count - 20);
+            recentlyPlayed.LastPlayedAt.RemoveRange(30, recentlyPlayed.LastPlayedAt.Count - 30);
         }
 
         if (saveChanges)await this.SaveChangesAsync();
