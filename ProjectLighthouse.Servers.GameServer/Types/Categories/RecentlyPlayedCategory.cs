@@ -39,7 +39,7 @@ public class RecentlyPlayedCategory : SlotCategory
             return database.Slots.Where(_ => false);
 
         List<int> slotIds = recentlyPlayed.SlotIds
-            .Take(20)
+            .Take(30)
             .ToList();
 
         ParameterExpression slotParameter =
