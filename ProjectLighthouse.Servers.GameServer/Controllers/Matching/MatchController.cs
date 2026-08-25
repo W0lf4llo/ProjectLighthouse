@@ -14,7 +14,6 @@ using LBPUnion.ProjectLighthouse.Types.Matchmaking.Rooms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using LBPUnion.ProjectLighthouse.Types.Users;
 
 namespace LBPUnion.ProjectLighthouse.Servers.GameServer.Controllers.Matching;
 
