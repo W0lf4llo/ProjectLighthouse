@@ -97,16 +97,13 @@ public class CategoryController : ControllerBase
 
     private async Task<GenericSerializableList> GetRecommendedCategory(RecommendedCategory recommendedCategory, GameTokenEntity token, SlotQueryBuilder queryBuilder, PaginationData pageData)
     {
-        List<RecommendedCategory.ScoredSlot> recommendations = await recommendedCategory.GetScoredItems(this.database, token, queryBuilder);
+        IQueryable<RecommendedCategory.ScoredSlot> recommendations = recommendedCategory.GetScoredItems(this.database, token, queryBuilder);
 
-        pageData.TotalElements = recommendations.Count;
+        pageData.TotalElements = await recommendations.CountAsync();
 
-        List<RecommendedCategory.ScoredSlot> page = recommendations
-            .AsQueryable()
-            .ApplyPagination(pageData)
-            .ToList();
+        recommendations = recommendations.ApplyPagination(pageData);
 
-        List<ILbpSerializable> slots = page
+        List<ILbpSerializable> slots = (await recommendations.ToListAsync())
             .Select(recommendation => RecommendedCategory.CreateSerializableSlot(recommendation, token))
             .ToList();
 
