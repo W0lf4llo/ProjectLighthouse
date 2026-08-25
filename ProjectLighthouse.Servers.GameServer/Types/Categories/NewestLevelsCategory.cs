@@ -20,7 +20,7 @@ public class NewestLevelsCategory : SlotCategory
         "date"
     };
 
-  public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder) =>
-      database.Slots.Where(queryBuilder.Build())
-          .ApplyOrdering(new SlotSortBuilder<SlotEntity>().AddSort(new FirstUploadedSort()));
+    public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder) =>
+        database.Slots.Where(queryBuilder.Build())
+            .ApplyOrdering(new SlotSortBuilder<SlotEntity>().AddSort(new FirstUploadedSort()));
 }
