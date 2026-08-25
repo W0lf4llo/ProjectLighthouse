@@ -33,10 +33,7 @@ public class MatchController : ControllerBase
 
     [HttpPost("gameState")]
     [Produces("text/plain")]
-    public IActionResult GameState()
-    {
-        return this.Ok("VALID");
-    }
+    public IActionResult GameState() => this.Ok("VALID");
 
     [HttpPost("match")]
     [Produces("text/plain")]
