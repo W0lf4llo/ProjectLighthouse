@@ -1,14 +1,14 @@
 #nullable enable
 
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using LBPUnion.ProjectLighthouse.Types.Entities.Level;
 using LBPUnion.ProjectLighthouse.Types.Entities.Profile;
 using Microsoft.EntityFrameworkCore;
 
 namespace LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
 
-[Index(nameof(UserId), IsUnique = true)]
+[Index(nameof(UserId), nameof(SlotId), IsUnique = true)]
 public class RecentlyPlayedEntity
 {
     [Key]
@@ -17,7 +17,9 @@ public class RecentlyPlayedEntity
 
     [ForeignKey(nameof(UserId))]
     public UserEntity User { get; set; } = null!;
-    public List<int> SlotIds { get; set; } = new();
-    public List<long> LastPlayedAt { get; set; } = new();
+    public int SlotId { get; set; }
 
+    [ForeignKey(nameof(SlotId))]
+    public SlotEntity Slot { get; set; } = null!;
+    public long LastPlayedAt { get; set; }
 }

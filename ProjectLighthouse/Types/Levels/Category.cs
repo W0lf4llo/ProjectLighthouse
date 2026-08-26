@@ -18,7 +18,7 @@ public abstract class Category
 
     public abstract string Endpoint { get; set; }
 
-    public virtual string[] Sorts { get; } = { "relevance", "likes", "plays", "hearts", "date", };
+    public virtual string[] Sorts { get; } = ["relevance", "likes", "plays", "hearts", "date",];
 
     public abstract string[] Types { get; }
 

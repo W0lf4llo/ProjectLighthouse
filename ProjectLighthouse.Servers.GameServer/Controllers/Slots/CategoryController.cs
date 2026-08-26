@@ -147,7 +147,6 @@ public class CategoryController : ControllerBase
         {
             string sort = (string?)this.Request.Query["sort"] ?? "";
 
-        //Only accept sorts this category actually advertises.
             if (slotCategory.Sorts.Contains(sort))
             {
                 slotQuery = sort switch

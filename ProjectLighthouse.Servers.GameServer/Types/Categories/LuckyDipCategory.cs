@@ -16,12 +16,8 @@ public class LuckyDipCategory : SlotCategory
     public override string IconHash { get; set; } = "g820605";
     public override string Endpoint { get; set; } = "lucky_dip";
     public override string Tag => "level_of_the_day";
-    public override string[] Sorts { get; } =
-        {
-            "relevance",
-        };
+    public override string[] Sorts { get; } = ["relevance",];
     public override bool Curated => false;
-    //The game client doesnt seem to work with this, but I'll leave it here in case its just a bug on my end in the future
     public override bool DisableFilters => true;
     public override bool DefaultToCurrentGame => false;
 

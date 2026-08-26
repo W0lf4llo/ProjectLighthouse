@@ -1,8 +1,9 @@
 ﻿#nullable enable
-using System;
-using System.Collections.Generic; 
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LBPUnion.ProjectLighthouse.Configuration;
+using LBPUnion.ProjectLighthouse.Helpers;
 using LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
 using LBPUnion.ProjectLighthouse.Types.Entities.Level;
 using Microsoft.EntityFrameworkCore;
@@ -90,59 +91,34 @@ public partial class DatabaseContext
         await this.SaveChangesAsync();
     }
 
-    public async Task RecordRecentlyPlayedLevel(int userId, int slotId, bool saveChanges = true)
+    public async Task RecordRecentlyPlayedLevel(int userId, int slotId)
     {
-        RecentlyPlayedEntity? recentlyPlayed = await this.RecentlyPlayed.FirstOrDefaultAsync(r => r.UserId == userId);
+        long now = TimeHelper.TimestampMillis;
+        int maxLevels = CategoryConfiguration.Instance.RecentlyPlayed.MaxLevels;
 
-        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        RecentlyPlayedEntity? recentlyPlayed = await this.RecentlyPlayed
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.SlotId == slotId);
 
-        //Level at the top of the recently played category for the user
         if (recentlyPlayed == null)
         {
             this.RecentlyPlayed.Add(new RecentlyPlayedEntity
             {
                 UserId = userId,
-                SlotIds = new List<int> { slotId },
-                LastPlayedAt = new List<long> { now },
+                SlotId = slotId,
+                LastPlayedAt = now,
             });
-
-            if (saveChanges)await this.SaveChangesAsync();
-
-            return;
         }
-
-        //This makes it so the users most recently played level isnt rewritten if it they're in said level
-        if (recentlyPlayed.SlotIds.Count > 0 && recentlyPlayed.SlotIds[0] == slotId)
+        else
         {
-            return;
+            recentlyPlayed.LastPlayedAt = now;
         }
 
-        //If the level already existed in the users history, it removes its old timestamp and position, then moves it to the top of the list.
-        int existingIndex = recentlyPlayed.SlotIds.IndexOf(slotId);
+        List<RecentlyPlayedEntity> excessEntries = await this.RecentlyPlayed
+            .Where(r => r.UserId == userId && r.SlotId != slotId)
+            .OrderByDescending(r => r.LastPlayedAt)
+            .Skip(maxLevels - 1)
+            .ToListAsync();
 
-        if (existingIndex >= 0)
-        {
-            recentlyPlayed.SlotIds.RemoveAt(existingIndex);
-
-            if (existingIndex < recentlyPlayed.LastPlayedAt.Count)
-                recentlyPlayed.LastPlayedAt.RemoveAt(existingIndex);
-        }
-
-        //The most recently played level is at the top
-        recentlyPlayed.SlotIds.Insert(0, slotId);
-        recentlyPlayed.LastPlayedAt.Insert(0, now);
-
-        //Max of 30 levels
-        if (recentlyPlayed.SlotIds.Count > 30)
-        {
-            recentlyPlayed.SlotIds.RemoveRange(30, recentlyPlayed.SlotIds.Count - 30);
-        }
-
-        if (recentlyPlayed.LastPlayedAt.Count > 30)
-        {
-            recentlyPlayed.LastPlayedAt.RemoveRange(30, recentlyPlayed.LastPlayedAt.Count - 30);
-        }
-
-        if (saveChanges)await this.SaveChangesAsync();
+        this.RecentlyPlayed.RemoveRange(excessEntries);
     }
 }

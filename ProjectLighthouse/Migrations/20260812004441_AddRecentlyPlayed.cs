@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using LBPUnion.ProjectLighthouse.Database;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LBPUnion.ProjectLighthouse.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(DatabaseContext))]
+    [Migration("20260812004441_AddRecentlyPlayed")]
     public partial class AddRecentlyPlayed : Migration
     {
         /// <inheritdoc />
@@ -18,14 +22,18 @@ namespace LBPUnion.ProjectLighthouse.Migrations
                     RecentlyPlayedId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    SlotIds = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    LastPlayedAt = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                    SlotId = table.Column<int>(type: "int", nullable: false),
+                    LastPlayedAt = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RecentlyPlayed", x => x.RecentlyPlayedId);
+                    table.ForeignKey(
+                        name: "FK_RecentlyPlayed_Slots_SlotId",
+                        column: x => x.SlotId,
+                        principalTable: "Slots",
+                        principalColumn: "SlotId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_RecentlyPlayed_Users_UserId",
                         column: x => x.UserId,
@@ -36,9 +44,14 @@ namespace LBPUnion.ProjectLighthouse.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RecentlyPlayed_UserId",
+                name: "IX_RecentlyPlayed_SlotId",
                 table: "RecentlyPlayed",
-                column: "UserId",
+                column: "SlotId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RecentlyPlayed_UserId_SlotId",
+                table: "RecentlyPlayed",
+                columns: new[] { "UserId", "SlotId" },
                 unique: true);
         }
 

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
 using LBPUnion.ProjectLighthouse.Configuration;
 using LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
 using LBPUnion.ProjectLighthouse.Types.Entities.Level;
@@ -12,8 +8,6 @@ using LBPUnion.ProjectLighthouse.Types.Entities.Profile;
 using LBPUnion.ProjectLighthouse.Types.Entities.Token;
 using LBPUnion.ProjectLighthouse.Types.Entities.Website;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace LBPUnion.ProjectLighthouse.Database;
 
@@ -89,53 +83,10 @@ public partial class DatabaseContext : DbContext
     { }
 
     public static DatabaseContext CreateNewInstance()
-{
-    DbContextOptionsBuilder<DatabaseContext> builder = new();
-    builder.UseMySql(ServerConfiguration.Instance.DbConnectionString,
-        MySqlServerVersion.LatestSupportedServerVersion);
-    return new DatabaseContext(builder.Options);
-}
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-
-        ValueConverter<List<int>, string> slotIdsConverter = new(
-            value => JsonSerializer.Serialize(
-                value,
-                (JsonSerializerOptions)null),
-            value => JsonSerializer.Deserialize<List<int>>(
-                value,
-                (JsonSerializerOptions)null) ?? new List<int>());
-
-        ValueComparer<List<int>> slotIdsComparer = new(
-            (left, right) => left.SequenceEqual(right),
-            value => value.Aggregate(
-                0,
-                (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
-            value => value.ToList());
-
-        modelBuilder.Entity<RecentlyPlayedEntity>()
-            .Property(r => r.SlotIds)
-            .HasConversion(slotIdsConverter, slotIdsComparer);
-
-        ValueConverter<List<long>, string> timestampsConverter = new(
-            value => JsonSerializer.Serialize(
-                value,
-                (JsonSerializerOptions)null),
-            value => JsonSerializer.Deserialize<List<long>>(
-                value,
-                (JsonSerializerOptions)null) ?? new List<long>());
-
-        ValueComparer<List<long>> timestampsComparer = new(
-            (left, right) => left.SequenceEqual(right),
-            value => value.Aggregate(
-                0,
-                (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
-            value => value.ToList());
-
-        modelBuilder.Entity<RecentlyPlayedEntity>()
-            .Property(r => r.LastPlayedAt)
-            .HasConversion(timestampsConverter, timestampsComparer);
+        DbContextOptionsBuilder<DatabaseContext> builder = new();
+        builder.UseMySql(ServerConfiguration.Instance.DbConnectionString,
+            MySqlServerVersion.LatestSupportedServerVersion);
+        return new DatabaseContext(builder.Options);
     }
 }

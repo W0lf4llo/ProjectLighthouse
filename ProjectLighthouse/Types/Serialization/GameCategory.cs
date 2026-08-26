@@ -1,7 +1,6 @@
 ﻿#nullable enable
 using System.ComponentModel;
 using System.Xml.Serialization;
-using JetBrains.Annotations;
 using LBPUnion.ProjectLighthouse.Types.Levels;
 
 namespace LBPUnion.ProjectLighthouse.Types.Serialization;
@@ -43,16 +42,14 @@ public class GameCategory : ILbpSerializable
     [XmlArrayItem("type")]
     public string[] Types { get; set; } = [];
 
-    //This will likely be used in the future if Companion Capers ever get added in LBP3
+    // This will likely be used in the future if Companion Capers ever get added in LBP3
+    [DefaultValue("")]
     [XmlElement("param")]
     public string? Param { get; set; }
 
-    public bool ShouldSerializeParam() => !string.IsNullOrWhiteSpace(this.Param);
-
+    [DefaultValue(null)]
     [XmlElement("defaultFilters")]
     public CategoryDefaults? DefaultFilters { get; set; }
-
-    public bool ShouldSerializeDefaultFilters() => this.DefaultFilters is not null;
 
     [DefaultValue(null)]
     [XmlElement("results")]

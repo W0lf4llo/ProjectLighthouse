@@ -12,11 +12,11 @@ public class CategoryConfiguration : ConfigurationBase<CategoryConfiguration>
     // This is so Lighthouse can properly identify outdated configurations and update them with newer settings accordingly.
     // If you are modifying anything here, this value MUST be incremented.
     // Thanks for listening~
-    public override int ConfigVersion { get; set; } = 1;
+    public override int ConfigVersion { get; set; } = 2;
     public override string ConfigName { get; set; } = "CategoryConfig.yml";
     public override bool NeedsConfiguration { get; set; } = false;
 
-    public List<string> OrderOfCategory { get; set; } = new()
+    public List<string> Categories { get; set; } = new()
     {
         "recently_played",
         "recommended",
@@ -26,21 +26,17 @@ public class CategoryConfiguration : ConfigurationBase<CategoryConfiguration>
         "busiest",
         "most_played",
         "my_playlists",
-        "favourite_creators",
         "queue",
         "hearted_levels",
         "highest_rated",
         "lucky_dip",
     };
 
-    public List<string> DisabledCategories { get; set; } = new()
-    {
-        "favourite_creators",
-    };
-
     public RecommendedCategoryConfig Recommended { get; set; } = new();
     public RecentlyPlayedConfig RecentlyPlayed { get; set; } = new();
-    public override ConfigurationBase<CategoryConfiguration> Deserialize(IDeserializer deserializer, string text) => deserializer.Deserialize<CategoryConfiguration>(text);
+
+    public override ConfigurationBase<CategoryConfiguration> Deserialize(IDeserializer deserializer, string text) =>
+        deserializer.Deserialize<CategoryConfiguration>(text);
 }
 
 public class RecommendedCategoryConfig

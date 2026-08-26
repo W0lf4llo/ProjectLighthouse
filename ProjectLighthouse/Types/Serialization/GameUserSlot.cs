@@ -9,9 +9,9 @@ using LBPUnion.ProjectLighthouse.Configuration;
 using LBPUnion.ProjectLighthouse.Database;
 using LBPUnion.ProjectLighthouse.Files;
 using LBPUnion.ProjectLighthouse.Helpers;
+using LBPUnion.ProjectLighthouse.Services;
 using LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
 using LBPUnion.ProjectLighthouse.Types.Entities.Level;
-using LBPUnion.ProjectLighthouse.Types.Levels;
 using LBPUnion.ProjectLighthouse.Types.Misc;
 using LBPUnion.ProjectLighthouse.Types.Users;
 using Microsoft.EntityFrameworkCore;
@@ -41,15 +41,14 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
 
     [XmlElement("npHandle")]
     public NpHandle AuthorHandle { get; set; } = new();
+
+    [DefaultValue(null)]
     [XmlElement("searchScore")]
     public double? SearchScore { get; set; }
-    public bool ShouldSerializeSearchScore() =>
-        this.SearchScore.HasValue;
 
+    [DefaultValue(null)]
     [XmlElement("prevSearchScore")]
     public double? PrevSearchScore { get; set; }
-    public bool ShouldSerializePrevSearchScore() =>
-        this.PrevSearchScore.HasValue;
 
     [XmlElement("location")]
     public Location Location { get; set; } = new();
@@ -170,7 +169,8 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
     // The C# XML serializer doesn't serialize fields that don't have public getters and setters
     // even though it doesn't use the setter, these fields were originally meant to be expression bodies to another variable
     // but unfortunately that's not supported.
-    public string Labels {
+    public string Labels
+    {
         get => this.AuthorLabels;
         set => throw new NotSupportedException();
     }
@@ -185,7 +185,7 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
     [DefaultValue(null)]
     [XmlElement("yourReview")]
     public GameReview? YourReview { get; set; }
-    public bool ShouldSerializeYourReview() => this.SerializationMode == SerializationMode.Full; 
+    public bool ShouldSerializeYourReview() => this.SerializationMode == SerializationMode.Full;
 
     [XmlElement("reviewsEnabled")]
     public bool ReviewsEnabled
@@ -241,7 +241,7 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
     public int ResourcesSize { get; set; }
     public bool ShouldSerializeResourcesSize() => this.TargetGame == GameVersion.LittleBigPlanetVita;
 
-    public async Task PrepareSerialization(DatabaseContext database)
+    public async Task PrepareSerialization(DatabaseContext database, RoomPlayerCountService playerCountService)
     {
         var stats = await database.Slots.Where(s => s.SlotId == this.SlotId)
             .Select(_ => new
@@ -282,7 +282,7 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
 
         if (this.GameVersion == GameVersion.LittleBigPlanetVita && this.Resources != null) this.ResourcesSize = this.Resources.Sum(FileHelper.ResourceSize);
 
-        #nullable enable
+#nullable enable
         RatedLevelEntity? yourRating = await database.RatedLevels.FirstOrDefaultAsync(r => r.UserId == this.TargetUserId && r.SlotId == this.SlotId);
         ReviewEntity? yourReview = await database.Reviews.FirstOrDefaultAsync(r => r.ReviewerId == this.TargetUserId && r.SlotId == this.SlotId);
         VisitedLevelEntity? yourVisitedStats = await database.VisitedLevels.FirstOrDefaultAsync(v => v.UserId == this.TargetUserId && v.SlotId == this.SlotId);
@@ -301,13 +301,9 @@ public class GameUserSlot : SlotBase, INeedsPreparationForSerialization
         {
             this.YourReview = GameReview.CreateFromEntity(yourReview, this.TargetUserId);
         }
-        #nullable disable
+#nullable disable
 
-        Dictionary<int, int> playerCounts = RoomHelper.GetUserLevelPlayerCounts();
-
-        this.PlayerCount = playerCounts.TryGetValue(this.SlotId, out int playerCount)
-            ? playerCount
-            : 0;
+        this.PlayerCount = playerCountService.GetPlayerCount(this.SlotId);
     }
 
 }

@@ -28,11 +28,8 @@ public static class CategoryHelper
             ["lucky_dip"] = () => new LuckyDipCategory(),
         };
 
-        foreach (string categoryName in CategoryConfiguration.Instance.OrderOfCategory)
+        foreach (string categoryName in CategoryConfiguration.Instance.Categories)
         {
-            if (CategoryConfiguration.Instance.DisabledCategories.Contains(categoryName))
-                continue;
-
             if (availableCategories.TryGetValue(categoryName, out Func<Category>? categoryCreator))
                 Categories.Add(categoryCreator());
         }

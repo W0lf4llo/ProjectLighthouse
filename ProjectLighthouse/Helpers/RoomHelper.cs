@@ -169,7 +169,7 @@ public static class RoomHelper
                         SlotId = room.Slot.SlotId,
                         PlayerId = playerId,
                     }))
-                //Distinct being used here prevents a duplicate room state from messing up the player count.
+                // Distinct being used here prevents a duplicate room state from messing up the player count.
                 .Distinct()
                 .GroupBy(entry => entry.SlotId)
                 .ToDictionary(group => group.Key, group => group.Count());

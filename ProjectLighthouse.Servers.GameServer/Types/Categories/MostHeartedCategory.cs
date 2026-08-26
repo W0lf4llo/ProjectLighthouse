@@ -17,12 +17,7 @@ public class MostHeartedCategory : SlotCategory
     public override string IconHash { get; set; } = "g820607";
     public override string Endpoint { get; set; } = "most_hearted";
     public override string Tag => "most_hearted";
-    public override string[] Sorts { get; } =
-    {
-        "hearts",
-        "likes",
-        "plays",
-    };
+    public override string[] Sorts { get; } = ["hearts", "likes", "plays",];
     public override CategoryDefaults? DefaultFilters { get; } = new()
     {
         DateFilterType = "thisMonth",
@@ -31,10 +26,10 @@ public class MostHeartedCategory : SlotCategory
 
     public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder) =>
         database.Slots.Select(s => new SlotMetadata
-        {
-            Slot = s,
-            Hearts = database.HeartedLevels.Count(r => r.SlotId == s.SlotId),
-        })
+            {
+                Slot = s,
+                Hearts = database.HeartedLevels.Count(r => r.SlotId == s.SlotId),
+            })
             .ApplyOrdering(new SlotSortBuilder<SlotMetadata>().AddSort(new HeartsSort()))
             .Select(s => s.Slot)
             .Where(queryBuilder.Build());

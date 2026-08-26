@@ -14,10 +14,7 @@ public class MostPlayedCategory : SlotCategory
     public override string IconHash { get; set; } = "g820608";
     public override string Endpoint { get; set; } = "most_played";
     public override string Tag => "most_played";
-    public override string[] Sorts { get; } =
-    {
-        "plays",
-    };
+    public override string[] Sorts { get; } = ["plays",];
     public override CategoryDefaults? DefaultFilters { get; } = new()
     {
         DateFilterType = "thisMonth",

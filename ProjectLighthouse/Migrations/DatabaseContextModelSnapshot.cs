@@ -206,20 +206,20 @@ namespace ProjectLighthouse.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("RecentlyPlayedId"));
 
-                    b.Property<string>("LastPlayedAt")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<long>("LastPlayedAt")
+                        .HasColumnType("bigint");
 
-                    b.Property<string>("SlotIds")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int>("SlotId")
+                        .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("RecentlyPlayedId");
 
-                    b.HasIndex("UserId")
+                    b.HasIndex("SlotId");
+
+                    b.HasIndex("UserId", "SlotId")
                         .IsUnique();
 
                     b.ToTable("RecentlyPlayed");
@@ -1320,11 +1320,19 @@ namespace ProjectLighthouse.Migrations
 
             modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Interaction.RecentlyPlayedEntity", b =>
                 {
+                    b.HasOne("LBPUnion.ProjectLighthouse.Types.Entities.Level.SlotEntity", "Slot")
+                        .WithMany()
+                        .HasForeignKey("SlotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserEntity", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Slot");
 
                     b.Navigation("User");
                 });

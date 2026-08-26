@@ -89,9 +89,9 @@ public class EnterLevelController : ControllerBase
                 return this.BadRequest();
         }
 
-        if (token.GameVersion == GameVersion.LittleBigPlanet3 && slotType == "user")
+        if (token.GameVersion == GameVersion.LittleBigPlanet3)
         {
-            await this.database.RecordRecentlyPlayedLevel(token.UserId, slotId, saveChanges: false);
+            await this.database.RecordRecentlyPlayedLevel(token.UserId, slotId);
         }
 
         await this.database.SaveChangesAsync();

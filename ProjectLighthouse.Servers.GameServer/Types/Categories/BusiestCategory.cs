@@ -15,16 +15,12 @@ public class BusiestCategory : SlotCategory
     public override string IconHash { get; set; } = "g820602";
     public override string Endpoint { get; set; } = "busiest";
     public override string Tag => "busiest";
-    public override string[] Sorts { get; } =
-    {
-      "relevance",
-    };
+    public override string[] Sorts { get; } = ["relevance",];
 
     public override IQueryable<SlotEntity> GetItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder)
     {
         Dictionary<int, int> playerCounts = RoomHelper.GetUserLevelPlayerCounts();
 
-        //If nobody is inside of a user level
         if (playerCounts.Count == 0)
             return database.Slots.Where(_ => false);
 

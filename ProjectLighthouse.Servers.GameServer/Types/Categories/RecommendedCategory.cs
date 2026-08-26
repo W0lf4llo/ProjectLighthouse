@@ -21,6 +21,13 @@ public class RecommendedCategory : SlotCategory
     public override string Endpoint { get; set; } = "recommended";
     public override string Tag => "recommended";
 
+    private sealed class RecommendationScore
+    {
+        public int SlotId { get; set; }
+        public int SearchScore { get; set; }
+        public int PrevSearchScore { get; set; }
+    }
+
     public sealed class ScoredSlot
     {
         public SlotEntity Slot { get; set; } = null!;
@@ -30,24 +37,21 @@ public class RecommendedCategory : SlotCategory
         public int Likes { get; set; }
     }
 
-    public IQueryable<ScoredSlot> GetScoredItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder)
+    private IQueryable<RecommendationScore> GetSearchScores(DatabaseContext database, GameTokenEntity token)
     {
         RecommendedCategoryConfig config = CategoryConfiguration.Instance.Recommended;
 
         IQueryable<int> seedUserIds = database.HeartedProfiles
-            .AsNoTracking()
             .Where(heartedProfile => heartedProfile.UserId == token.UserId)
             .Select(heartedProfile => heartedProfile.HeartedUserId)
             .Distinct();
 
         IQueryable<int> seedTasteSlotIds = database.HeartedLevels
-            .AsNoTracking()
             .Where(heartedLevel => seedUserIds.Contains(heartedLevel.UserId))
             .Select(heartedLevel => heartedLevel.SlotId)
             .Distinct();
 
         IQueryable<int> neighborUserIds = database.HeartedLevels
-            .AsNoTracking()
             .Where(heartedLevel => seedTasteSlotIds.Contains(heartedLevel.SlotId))
             .Where(heartedLevel => heartedLevel.UserId != token.UserId && !seedUserIds.Contains(heartedLevel.UserId))
             .GroupBy(heartedLevel => heartedLevel.UserId)
@@ -66,7 +70,6 @@ public class RecommendedCategory : SlotCategory
             .Select(user => user.UserId);
 
         var directContributions = database.HeartedLevels
-            .AsNoTracking()
             .Where(heartedLevel => seedUserIds.Contains(heartedLevel.UserId))
             .Select(heartedLevel => new
             {
@@ -82,7 +85,7 @@ public class RecommendedCategory : SlotCategory
             });
 
         var neighborContributions =
-            from heartedLevel in database.HeartedLevels.AsNoTracking()
+            from heartedLevel in database.HeartedLevels
             join neighborUserId in neighborUserIds
                 on heartedLevel.UserId equals neighborUserId
             select new
@@ -101,7 +104,6 @@ public class RecommendedCategory : SlotCategory
             });
 
         var creatorContributions = database.Slots
-            .AsNoTracking()
             .Where(slot => seedUserIds.Contains(slot.CreatorId))
             .Select(slot => new
             {
@@ -110,20 +112,45 @@ public class RecommendedCategory : SlotCategory
                 PrevSearchScore = 0,
             });
 
-        var scores = directContributions
+        return directContributions
             .Concat(distinctNeighborContributions)
             .Concat(creatorContributions)
             .GroupBy(contribution => contribution.SlotId)
-            .Select(group => new
+            .Select(group => new RecommendationScore
             {
                 SlotId = group.Key,
                 SearchScore = group.Sum(contribution => contribution.SearchScore),
                 PrevSearchScore = group.Sum(contribution => contribution.PrevSearchScore),
+            })
+            .OrderByDescending(score => score.SearchScore)
+            .ThenByDescending(score => score.PrevSearchScore)
+            .ThenByDescending(score => score.SlotId)
+            .Take(config.MaxCandidatePool);
+    }
+
+    public IQueryable<ScoredSlot> GetScoredItems(DatabaseContext database, GameTokenEntity token, SlotQueryBuilder queryBuilder)
+    {
+        IQueryable<RecommendationScore> scores = this.GetSearchScores(database, token);
+
+        var heartCounts = database.HeartedLevels
+            .GroupBy(heartedLevel => heartedLevel.SlotId)
+            .Select(group => new
+            {
+                SlotId = group.Key,
+                Count = (int?)group.Count(),
+            });
+
+        var likeCounts = database.RatedLevels
+            .Where(rating => rating.Rating == 1)
+            .GroupBy(rating => rating.SlotId)
+            .Select(group => new
+            {
+                SlotId = group.Key,
+                Count = (int?)group.Count(),
             });
 
         IQueryable<ScoredSlot> recommendations =
             from slot in database.Slots
-                .AsNoTracking()
                 .Where(queryBuilder.Build())
                 .Where(slot => !database.VisitedLevels.Any(visitedLevel =>
                     visitedLevel.UserId == token.UserId &&
@@ -132,18 +159,19 @@ public class RecommendedCategory : SlotCategory
             join score in scores
                 on slot.SlotId equals score.SlotId
 
-            let hearts = database.HeartedLevels.Count(heartedLevel =>
-                heartedLevel.SlotId == slot.SlotId)
+            join heartCount in heartCounts
+                on slot.SlotId equals heartCount.SlotId into heartCountGroup
+            from heartCount in heartCountGroup.DefaultIfEmpty()
 
-            let likes = database.RatedLevels.Count(rating =>
-                rating.SlotId == slot.SlotId &&
-                rating.Rating == 1)
+            join likeCount in likeCounts
+                on slot.SlotId equals likeCount.SlotId into likeCountGroup
+            from likeCount in likeCountGroup.DefaultIfEmpty()
 
             orderby
                 score.SearchScore descending,
                 score.PrevSearchScore descending,
-                hearts descending,
-                likes descending,
+                heartCount.Count descending,
+                likeCount.Count descending,
                 slot.SlotId descending
 
             select new ScoredSlot
@@ -151,8 +179,8 @@ public class RecommendedCategory : SlotCategory
                 Slot = slot,
                 SearchScore = score.SearchScore,
                 PrevSearchScore = score.PrevSearchScore,
-                Hearts = hearts,
-                Likes = likes,
+                Hearts = heartCount.Count ?? 0,
+                Likes = likeCount.Count ?? 0,
             };
 
         return recommendations;
