@@ -27,12 +27,17 @@ public partial class DatabaseContext : DbContext
     #endregion
 
     #region Users
+
     public DbSet<CommentEntity> Comments { get; set; }
     public DbSet<LastContactEntity> LastContacts { get; set; }
     public DbSet<PhotoEntity> Photos { get; set; }
     public DbSet<PhotoSubjectEntity> PhotoSubjects { get; set; }
     public DbSet<PlatformLinkAttemptEntity> PlatformLinkAttempts { get; set; }
+    public DbSet<UserPinBaselineEntity> UserPinBaselines { get; set; }
+    public DbSet<UserPinProgressEntity> UserPinProgress { get; set; }
+    public DbSet<UserPinAwardEntity> UserPinAwards { get; set; }
     public DbSet<UserEntity> Users { get; set; }
+
     #endregion
 
     #region Levels
@@ -52,6 +57,8 @@ public partial class DatabaseContext : DbContext
     public DbSet<RatedCommentEntity> RatedComments { get; set; }
     public DbSet<RatedLevelEntity> RatedLevels { get; set; }
     public DbSet<RatedReviewEntity> RatedReviews { get; set; }
+    public DbSet<ScoreboardPinQualificationEntity> ScoreboardPinQualifications { get; set; }
+    public DbSet<TeamPickQualification> TeamPickQualifications { get; set; }
     public DbSet<VisitedLevelEntity> VisitedLevels { get; set; }
     #endregion
 

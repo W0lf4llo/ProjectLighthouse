@@ -23,6 +23,10 @@ public class RatedLevelEntity
 
     public int Rating { get; set; }
 
+    public bool YaysQualified { get; set; }
+
+    public bool VotaratorQualified { get; set; }
+
     public double RatingLBP1 { get; set; }
 
     public string TagLBP1 { get; set; }

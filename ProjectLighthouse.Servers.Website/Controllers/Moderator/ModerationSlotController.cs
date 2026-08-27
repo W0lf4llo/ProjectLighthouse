@@ -5,6 +5,9 @@ using LBPUnion.ProjectLighthouse.Types.Entities.Level;
 using LBPUnion.ProjectLighthouse.Types.Entities.Profile;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
+using LBPUnion.ProjectLighthouse.Types.Serialization;
+using LBPUnion.ProjectLighthouse.Types.Users;
 
 namespace LBPUnion.ProjectLighthouse.Servers.Website.Controllers.Moderator;
 
@@ -29,6 +32,26 @@ public class ModerationSlotController : ControllerBase
         if (slot == null) return this.NotFound();
 
         slot.TeamPickTime = TimeHelper.TimestampMillis;
+
+        if (slot.GameVersion == GameVersion.LittleBigPlanet2)
+        {
+            bool alreadyQualified =
+                await this.database.TeamPickQualifications
+                    .AnyAsync(q =>
+                        q.UserId == slot.CreatorId &&
+                        q.SlotId == slot.SlotId);
+
+            if (!alreadyQualified)
+            {
+                this.database.TeamPickQualifications.Add(
+                    new TeamPickQualification
+                    {
+                        UserId = slot.CreatorId,
+                        SlotId = slot.SlotId,
+                        GameVersion = GameVersion.LittleBigPlanet2,
+                    });
+            }
+        }
 
         // Send webhook with slot.Name and slot.Creator.Username
         await WebhookHelper.SendWebhook("New Team Pick!", $"The level [**{slot.Name}**]({ServerConfiguration.Instance.ExternalUrl}/slot/{slot.SlotId}) by **{slot.Creator?.Username}** has been team picked");

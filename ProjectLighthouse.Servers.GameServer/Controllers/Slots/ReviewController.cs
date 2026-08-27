@@ -8,6 +8,7 @@ using LBPUnion.ProjectLighthouse.Types.Entities.Level;
 using LBPUnion.ProjectLighthouse.Types.Entities.Token;
 using LBPUnion.ProjectLighthouse.Types.Filter;
 using LBPUnion.ProjectLighthouse.Types.Serialization;
+using LBPUnion.ProjectLighthouse.Types.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -80,6 +81,21 @@ public class ReviewController : ControllerBase
 
         ratedLevel.Rating = Math.Clamp(rating, -1, 1);
 
+        if (token.GameVersion == GameVersion.LittleBigPlanet2 &&
+    ratedLevel.Rating == 1 &&
+    !ratedLevel.YaysQualified)
+        {
+            ratedLevel.YaysQualified = true;
+        }
+
+        if (token.GameVersion == GameVersion.LittleBigPlanet2 &&
+            ratedLevel.Rating == 1 &&
+            slot.PlaysLBP2 < 10 &&
+            !ratedLevel.VotaratorQualified)
+        {
+            ratedLevel.VotaratorQualified = true;
+        }
+
         ReviewEntity? review = await this.database.Reviews.FirstOrDefaultAsync(r => r.SlotId == slotId && r.ReviewerId == token.UserId);
         if (review != null) review.Thumb = ratedLevel.Rating;
 
@@ -92,6 +108,11 @@ public class ReviewController : ControllerBase
     public async Task<IActionResult> PostReview(int slotId)
     {
         GameTokenEntity token = this.GetToken();
+
+        SlotEntity? slot = await this.database.Slots.FirstOrDefaultAsync(s => s.SlotId == slotId);
+
+        if (slot == null)
+            return this.Forbid();
 
         // Deny request if in read-only mode
         if (ServerConfiguration.Instance.UserGeneratedContentLimits.ReadOnlyMode) return this.BadRequest();
@@ -141,6 +162,21 @@ public class ReviewController : ControllerBase
         }
 
         ratedLevel.Rating = Math.Clamp(newReview.Thumb, -1, 1);
+
+        if (token.GameVersion == GameVersion.LittleBigPlanet2 &&
+    ratedLevel.Rating == 1 &&
+    !ratedLevel.YaysQualified)
+        {
+            ratedLevel.YaysQualified = true;
+        }
+
+        if (token.GameVersion == GameVersion.LittleBigPlanet2 &&
+            ratedLevel.Rating == 1 &&
+            slot.PlaysLBP2 < 10 &&
+            !ratedLevel.VotaratorQualified)
+        {
+            ratedLevel.VotaratorQualified = true;
+        }
 
         await this.database.SaveChangesAsync();
 

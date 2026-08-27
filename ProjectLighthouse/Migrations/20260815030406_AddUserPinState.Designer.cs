@@ -4,16 +4,19 @@ using LBPUnion.ProjectLighthouse.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace ProjectLighthouse.Migrations
+namespace LBPUnion.ProjectLighthouse.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260815030406_AddUserPinState")]
+    partial class AddUserPinState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -163,12 +166,6 @@ namespace ProjectLighthouse.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("VotaratorQualified")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("YaysQualified")
-                        .HasColumnType("tinyint(1)");
-
                     b.HasKey("RatedLevelId");
 
                     b.HasIndex("SlotId");
@@ -202,22 +199,6 @@ namespace ProjectLighthouse.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RatedReviews");
-                });
-
-            modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Interaction.TeamPickQualification", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SlotId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GameVersion")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId", "SlotId");
-
-                    b.ToTable("TeamPickQualifications");
                 });
 
             modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Interaction.VisitedLevelEntity", b =>
@@ -998,25 +979,6 @@ namespace ProjectLighthouse.Migrations
                     b.ToTable("UserPinAwards");
                 });
 
-            modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserPinBaselineEntity", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GameVersion")
-                        .HasColumnType("int");
-
-                    b.Property<uint>("ProgressType")
-                        .HasColumnType("int unsigned");
-
-                    b.Property<double>("BaselineValue")
-                        .HasColumnType("double");
-
-                    b.HasKey("UserId", "GameVersion", "ProgressType");
-
-                    b.ToTable("UserPinBaselines");
-                });
-
             modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserPinProgressEntity", b =>
                 {
                     b.Property<int>("UserId")
@@ -1370,17 +1332,6 @@ namespace ProjectLighthouse.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Interaction.TeamPickQualification", b =>
-                {
-                    b.HasOne("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserEntity", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Interaction.VisitedLevelEntity", b =>
                 {
                     b.HasOne("LBPUnion.ProjectLighthouse.Types.Entities.Level.SlotEntity", "Slot")
@@ -1600,17 +1551,6 @@ namespace ProjectLighthouse.Migrations
                 });
 
             modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserPinAwardEntity", b =>
-                {
-                    b.HasOne("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserEntity", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserPinBaselineEntity", b =>
                 {
                     b.HasOne("LBPUnion.ProjectLighthouse.Types.Entities.Profile.UserEntity", "User")
                         .WithMany()

@@ -5,6 +5,7 @@ using LBPUnion.ProjectLighthouse.Helpers;
 using LBPUnion.ProjectLighthouse.Logging;
 using LBPUnion.ProjectLighthouse.StorableLists.Stores;
 using LBPUnion.ProjectLighthouse.Types.Entities.Level;
+using LBPUnion.ProjectLighthouse.Types.Entities.Interaction;
 using LBPUnion.ProjectLighthouse.Types.Entities.Profile;
 using LBPUnion.ProjectLighthouse.Types.Entities.Token;
 using LBPUnion.ProjectLighthouse.Types.Levels;
@@ -153,7 +154,7 @@ public class ScoreController : ControllerBase
         }
 
         bool personalBest = score.Points > existingScore.Points;
-        
+
         if (personalBest)
         {
             existingScore.Points = score.Points;
@@ -184,7 +185,7 @@ public class ScoreController : ControllerBase
             await this.database.SendNotification(second.UserId, $"{user?.InfoXml} beat your highscore (<em>{second.Points}</em>) on {slot.InfoXml} with a score of <em>{score.Points}</em>.", false);
         }
 
-        return this.Ok(scores); 
+        return this.Ok(scores);
     }
 
     [HttpGet("scoreboard/{slotType}/{id:int}")]
@@ -212,7 +213,7 @@ public class ScoreController : ControllerBase
                 options.ScoreType = i;
                 ScoreboardResponse response = await this.GetScores(options);
                 scoreboardResponses.Add(new PlayerScoreboardResponse(response.Scores, i));
-            } 
+            }
             return this.Ok(new MultiScoreboardResponse(scoreboardResponses));
         }
 
@@ -248,7 +249,7 @@ public class ScoreController : ControllerBase
             ScoreType = type,
             TargetUser = token.UserId,
             TargetPlayerIds = friendIds,
-        })); 
+        }));
     }
 
     [HttpGet("topscores/{slotType}/{slotId:int}/{type:int}")]
@@ -312,8 +313,8 @@ public class ScoreController : ControllerBase
             .Take(Math.Min(options.PageSize, 30))
             .Select(s => new
             {
-               Score = s,
-               Rank = scoreQuery.Count(s2 => s2.Points > s.Points) + 1,
+                Score = s,
+                Rank = scoreQuery.Count(s2 => s2.Points > s.Points) + 1,
             })
             .ToList();
 
@@ -322,5 +323,91 @@ public class ScoreController : ControllerBase
         List<GameScore> gameScores = rankedScores.ToSerializableList(ps => GameScore.CreateFromEntity(ps.Score, ps.Rank));
 
         return new ScoreboardResponse(options.RootName, gameScores, totalScores, myScore?.Score.Points ?? 0, myScore?.Rank ?? 0);
+    }
+
+    private async Task UpdateLbp2ScoreboardPins(
+    GameTokenEntity token,
+    string slotType,
+    int slotId,
+    int childSlotId,
+    int scoreType,
+    ScoreboardResponse scores)
+    {
+        if (token.GameVersion != GameVersion.LittleBigPlanet2)
+            return;
+
+        bool isStory = slotType == "developer";
+        bool isCommunity = slotType == "user";
+
+        if (!isStory && !isCommunity)
+            return;
+
+        // These pins only qualify on populated leaderboards.
+        if (scores.YourRank <= 0 || scores.Total <= 50)
+            return;
+
+        double percentile =
+            (double)scores.YourRank / scores.Total * 100.0;
+
+        uint bestPercentProgressType =
+            isStory
+                ? 191183438u
+                : 2033315234u;
+
+        UserPinProgressEntity? bestPercentProgress =
+            await this.database.UserPinProgress
+                .FirstOrDefaultAsync(p =>
+                    p.UserId == token.UserId &&
+                    p.GameVersion == GameVersion.LittleBigPlanet2 &&
+                    p.ProgressType == bestPercentProgressType);
+
+        if (bestPercentProgress == null)
+        {
+            bestPercentProgress = new UserPinProgressEntity
+            {
+                UserId = token.UserId,
+                GameVersion = GameVersion.LittleBigPlanet2,
+                ProgressType = bestPercentProgressType,
+                Value = percentile,
+            };
+
+            this.database.UserPinProgress.Add(bestPercentProgress);
+        }
+        else if (percentile < bestPercentProgress.Value)
+        {
+            // Lower placement percentage is better.
+            bestPercentProgress.Value = percentile;
+        }
+
+        // High Achiever / Actually Quite Good only count
+        // scoreboards on which the player reached the top 25%.
+        if (percentile <= 25.0)
+        {
+            bool alreadyQualified =
+                await this.database.ScoreboardPinQualifications
+                    .AnyAsync(q =>
+                        q.UserId == token.UserId &&
+                        q.SlotId == slotId &&
+                        q.ChildSlotId == childSlotId &&
+                        q.ScoreType == scoreType &&
+                        q.GameVersion == GameVersion.LittleBigPlanet2 &&
+                        q.IsStory == isStory);
+
+            if (!alreadyQualified)
+            {
+                this.database.ScoreboardPinQualifications.Add(
+                    new ScoreboardPinQualificationEntity
+                    {
+                        UserId = token.UserId,
+                        SlotId = slotId,
+                        ChildSlotId = childSlotId,
+                        ScoreType = scoreType,
+                        GameVersion = GameVersion.LittleBigPlanet2,
+                        IsStory = isStory,
+                    });
+            }
+        }
+
+        await this.database.SaveChangesAsync();
     }
 }
