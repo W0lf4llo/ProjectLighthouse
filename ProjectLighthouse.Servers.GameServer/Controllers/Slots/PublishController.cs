@@ -74,8 +74,9 @@ public class PublishController : ControllerBase
             return this.BadRequest();
         }
 
+        // Prevent duplicate slot uploads unless the original slot creator is the new creator
         if (!ServerConfiguration.Instance.UserGeneratedContentLimits.DuplicateSlotUploadingEnabled 
-            && await this.database.Slots.AnyAsync(s => s.RootLevel == slot.RootLevel))
+            && await this.database.Slots.AnyAsync(s => s.RootLevel == slot.RootLevel && s.CreatorId != user.UserId))
         {
             Logger.Warn("Rejecting level upload, rootlevel is duplicate", LogArea.Publish);
             await this.database.SendNotification(user.UserId,
@@ -149,6 +150,16 @@ public class PublishController : ControllerBase
                 $"{slot.Name} failed to publish. (LH-PUB-0003)");
             return this.BadRequest();
         }
+
+        if (!ServerConfiguration.Instance.UserGeneratedContentLimits.DuplicateSlotUploadingEnabled 
+            && await this.database.Slots.AnyAsync(s => s.RootLevel == slot.RootLevel && s.CreatorId != user.UserId))
+        {
+            Logger.Warn("Rejecting level upload, rootlevel is duplicate", LogArea.Publish);
+            await this.database.SendNotification(user.UserId,
+                $"{slot.Name} failed to publish. (LH-PUB-0011)");
+            return this.BadRequest();
+        }
+
         // Yes Rider, this isn't null
         Debug.Assert(slot.Resources != null, "slot.ResourceList != null");
 
